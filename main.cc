@@ -15,6 +15,36 @@ void SignalHandler(int signum) {
 
 int main(int argc, char** argv){
 
+    // varibale that controls
+    //  * wheter the main loop shall be exited after one loop
+    //  * no acknowledgement happens at begining
+    //       (removes need to start new run all the time when starting daq)
+    
+    bool flo_develop = true;
+    
+    
+    std::cout << 
+            std::endl <<
+            std::endl <<
+            std::endl <<
+            std::endl;
+    if(flo_develop){
+        
+         std::cout << 
+            std::endl <<
+            "\e[31m" <<
+            "========================" <<
+            std::endl <<
+            "   WARNING: " <<
+            std::endl <<
+            "     in developer mode" <<
+            std::endl <<
+            "========================" <<
+            "\e[0m" <<
+            std::endl;
+        
+    }
+    
   // Need to create a mongocxx instance and it must exist for
   // the entirety of the program. So here seems good.
   mongocxx::instance instance{};
@@ -31,20 +61,15 @@ int main(int argc, char** argv){
     std::cout<<"...exiting"<<std::endl;
     exit(0);
   } else {
-    std::cout << 
-            std::endl <<
-            std::endl <<
-            std::endl <<
-            std::endl <<
-            std::endl <<
+    std::cout <<
             "\e[32m" <<
-            "=================" <<
+            "========================" <<
             std::endl <<
-            " Welcome to DAX. " <<
+            "     Welcome to DAX.     " <<
             std::endl <<
-            "   (for XEBRA)   " <<
+            "       (for XEBRA)       " <<
             std::endl <<
-            "=================" <<
+            "========================" <<
             "\e[0m" <<
             std::endl <<
             std::endl <<
@@ -127,7 +152,7 @@ int main(int argc, char** argv){
         // fails then we still acknowledge it because we tried
         
         // disable updateing of document when developing
-        if(false){
+        if(!flo_develop){
             control.update_one
                 (
                  bsoncxx::builder::stream::document{} << "_id" << (doc)["_id"].get_oid() <<
@@ -310,7 +335,7 @@ int main(int argc, char** argv){
     }
     usleep(1000000);
     
-    if(true){
+    if(flo_develop){
         std::cout << std::endl << "\e[32quitting developer loop\e[0m" << std::endl;
         exit(0);
     }
