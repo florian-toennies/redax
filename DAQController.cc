@@ -38,51 +38,62 @@ std::string DAQController::run_mode(){
 }
 
 int DAQController::InitializeElectronics(Options *options, std::vector<int>&keys,
-					 std::map<int, std::vector<u_int16_t>>&written_dacs){
+        std::map<int, std::vector<u_int16_t>>&written_dacs){
 
-  End();
+    End();
+    
+    
+    fOptions = options;
+    
+    
+    fNProcessingThreads = fOptions->GetNestedInt("processing_threads."+fHostname, 8);
+    
+    
+    fLog->Entry(MongoLog::Local, "Beginning electronics initialization with %i threads",
+        fNProcessingThreads);
+        
+    std::cout<<"\e[33m  fNProcessingThreads:\e[0m " << fNProcessingThreads << std::endl;
   
-  fOptions = options;
-  fNProcessingThreads = fOptions->GetNestedInt("processing_threads."+fHostname, 8);  
-  fLog->Entry(MongoLog::Local, "Beginning electronics initialization with %i threads",
-	      fNProcessingThreads);
-  
-  // Initialize digitizers
-  fStatus = DAXHelpers::Arming;
-  for(auto d : fOptions->GetBoards("V1724", fHostname)){
-    fLog->Entry(MongoLog::Local, "Arming new digitizer %i", d.board);    
+    // Initialize digitizers
+    fStatus = DAXHelpers::Arming;
+    for(auto d : fOptions->GetBoards("V1724", fHostname)){
+        fLog->Entry(MongoLog::Local, "Arming new digitizer %i", d.board);    
+        
+        
+        V1724 *digi = new V1724(fLog, fOptions);
+        if(digi->Init(d.link, d.crate, d.board, d.vme_address)==0){
+            fDigitizers[d.link].push_back(digi);
+            
+            if(std::find(keys.begin(), keys.end(), d.link) == keys.end()){
+                fLog->Entry(MongoLog::Local, "Defining a new optical link at %i", d.link);
+                keys.push_back(d.link);
+            }    
+            fLog->Entry(MongoLog::Debug, "Initialized digitizer %i", d.board);
 
-    V1724 *digi = new V1724(fLog, fOptions);
-    if(digi->Init(d.link, d.crate, d.board, d.vme_address)==0){      
-	fDigitizers[d.link].push_back(digi);
-	if(std::find(keys.begin(), keys.end(), d.link) == keys.end()){	  
-	  fLog->Entry(MongoLog::Local, "Defining a new optical link at %i", d.link);
-	  keys.push_back(d.link);
-	}    
-	fLog->Entry(MongoLog::Debug, "Initialized digitizer %i", d.board);
-
-	// Load initial registers
-	int write_success = 0;
-	write_success += digi->WriteRegister(0xEF24, 0x1);
-	write_success += digi->WriteRegister(0xEF00, 0x30);
-	if(write_success!=0){
-	  fLog->Entry(MongoLog::Error, "Digitizer %i unable to load pre-registers", d.board);
-	  fStatus = DAXHelpers::Idle;
-	  return -1;	  
-	}
+            // Load initial registers
+            int write_success = 0;
+            write_success += digi->WriteRegister(0xEF24, 0x1);
+            write_success += digi->WriteRegister(0xEF00, 0x30);
+            
+            if(write_success!=0){
+                fLog->Entry(MongoLog::Error, "Digitizer %i unable to load pre-registers", d.board);
+                fStatus = DAXHelpers::Idle;
+                return -1;
+            }
+        } else {
+            fLog->Entry(MongoLog::Warning, "Failed to initialize digitizer %i", d.board);
+            fStatus = DAXHelpers::Idle;
+            return -1;
+        }
     }
-    else{
-      fLog->Entry(MongoLog::Warning, "Failed to initialize digitizer %i", d.board);
-      fStatus = DAXHelpers::Idle;
-      return -1;
-    }
-  }
 
-  fLog->Entry(MongoLog::Local, "Sleeping for two seconds");
-  // For the sake of sanity and sleeping through the night, do not remove this statement.
-  sleep(2); // <-- this one. Leave it here.
-  // Seriously. This sleep statement is absolutely vital.
-  fLog->Entry(MongoLog::Local, "That felt great, thanks.");
+    fLog->Entry(MongoLog::Local, "Sleeping for two seconds");
+    // For the sake of sanity and sleeping through the night, do not remove this statement.
+    std::cout<<"\e[33msleep 2\e[0m"<<std::endl;
+    sleep(2); // <-- this one. Leave it here.
+    // Seriously. This sleep statement is absolutely vital.
+    fLog->Entry(MongoLog::Local, "That felt great, thanks.");
+    std::cout<<"\e[32mslept\e[0m"<<std::endl;
   
   // Load registers into digitizers  
   for( auto const& link : fDigitizers )    {
@@ -261,7 +272,7 @@ void DAQController::End(){
 
   if(fRawDataBuffer != NULL){
     fLog->Entry(MongoLog::Warning, "Deleting uncleard buffer of size %i",
-		fRawDataBuffer->size());	       
+		    fRawDataBuffer->size());
     for(unsigned int i=0; i<fRawDataBuffer->size(); i++){
       delete[] (*fRawDataBuffer)[i].buff;
     }
@@ -269,7 +280,7 @@ void DAQController::End(){
     fRawDataBuffer = NULL;
   }
 
-  std::cout<<"Finished end"<<std::endl;
+  std::cout << "\e[32mFinished end\e[0m" << std::endl;
 }
 
 void* DAQController::ReadThreadWrapper(void* data, int link){

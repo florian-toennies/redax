@@ -47,11 +47,11 @@ class Options{
 
 public:
   Options(MongoLog *log, std::string name, mongocxx::collection opts_collection,
-	  std::string override_opts);
+        std::string override_opts);
   ~Options();
 
   int Load(std::string name, mongocxx::collection opts_collection,
-	   std::string override_opts);
+        std::string override_opts);
   int Override(bsoncxx::document::view override_opts);
   std::string ExportToString();
   

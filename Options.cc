@@ -1,11 +1,16 @@
 #include "Options.hh"
 
 Options::Options(MongoLog *log, std::string options_name, mongocxx::collection opts_collection,
-		 std::string override_opts){
-  bson_value = NULL;
-  if(Load(options_name, opts_collection, override_opts)!=0)
-    throw std::runtime_error("Can't initialize options class");
-  fHelper = new DAXHelpers();
+        std::string override_opts){
+    bson_value = NULL;
+    
+    if(Load(options_name, opts_collection, override_opts)!=0){
+        throw std::runtime_error("Can't initialize options class");
+        std::cout << "\e[31m failing at loading options\e[0m" << std::endl;
+    } else {
+        std::cout << "\e[32mloaded options\e[0m" << std::endl;
+    }
+    fHelper = new DAXHelpers();
 }
 
 Options::~Options(){
@@ -20,34 +25,48 @@ std::string Options::ExportToString(){
 }
 
 int Options::Load(std::string name, mongocxx::collection opts_collection,
-		  std::string override_opts){
-  // Try to pull doc from DB
-  bsoncxx::stdx::optional<bsoncxx::document::value> trydoc;
-  trydoc = opts_collection.find_one(bsoncxx::builder::stream::document{}<<
-				    "name" << name.c_str() << bsoncxx::builder::stream::finalize);
-  if(!trydoc){
-    fLog->Entry(MongoLog::Warning, "Failed to find your options file '%s' in DB", name);
-    return -1;
-  }
-  if(bson_value != NULL)
-    delete bson_value;
-  bson_value = new bsoncxx::document::value((*trydoc).view());
-  bson_options = bson_value->view();
+        std::string override_opts){
+    // Try to pull doc from DB
+    bsoncxx::stdx::optional<bsoncxx::document::value> trydoc;
+    
+    
+  
+    trydoc = opts_collection.find_one(bsoncxx::builder::stream::document{}<<
+                    "name" << name.c_str() << bsoncxx::builder::stream::finalize);
+    
+    
+    if(!trydoc){
+        fLog->Entry(MongoLog::Warning, "Failed to find your options file '%s' in DB", name);
+        return -1;
+    }
+    // TF does this come from????
+    //if(bson_value != NULL){
+        //delete bson_value;
+    //}
+    
+    bson_value = new bsoncxx::document::value((*trydoc).view());
+    
+    
+    bson_options = bson_value->view();
+    
   
   // Pull all subdocuments
-  int success = 0;
-  try{
-    bsoncxx::array::view include_array = (*trydoc).view()["includes"].get_array().value;
-    for(bsoncxx::array::element ele : include_array){
-      auto sd = opts_collection.find_one(bsoncxx::builder::stream::document{} <<
-					 "name" << ele.get_utf8().value.to_string() <<
-					 bsoncxx::builder::stream::finalize);
-      if(sd)
-	success += Override(*sd); // include_json.push_back(bsoncxx::to_json(*sd));
-      else
-	fLog->Entry(MongoLog::Warning, "Possible improper run config. Check your options includes");
-    }
-  }catch(...){}; // will catch if there are no includes, for example
+    int success = 0;
+    
+    try{
+        bsoncxx::array::view include_array = (*trydoc).view()["includes"].get_array().value;
+        for(bsoncxx::array::element ele : include_array){
+          
+            auto sd = opts_collection.find_one(bsoncxx::builder::stream::document{} <<
+                        "name" << ele.get_utf8().value.to_string() <<
+                        bsoncxx::builder::stream::finalize);
+            if(sd){
+                success += Override(*sd); // include_json.push_back(bsoncxx::to_json(*sd));
+            } else {
+                fLog->Entry(MongoLog::Warning, "Possible improper run config. Check your options includes");
+            }
+        }
+    }catch(...){}; // will catch if there are no includes, for example
 
   if(override_opts != "")
     success += Override(bsoncxx::from_json(override_opts));
@@ -119,29 +138,36 @@ int Options::GetInt(std::string path, int default_value){
     std::cout<<"Exception: "<< e.what()<<std::endl;
     return default_value;    
   }
-  return -1;  
+  return -1;
 }
 
 int Options::GetNestedInt(std::string path, int default_value){
-  // Parse string
-  std::vector<std::string> fields;
-  std::stringstream ss(path);
-  while( ss.good() ){
-    std::string substr;
-    getline( ss, substr, '.' );
-    fields.push_back( substr );
-  }
-  try{
-    auto val = bson_options[fields[0].c_str()];
-    for(unsigned int i=1; i<fields.size(); i++)
-      val = val[fields[i].c_str()];
-    return val.get_int32();
-  }catch(const std::exception &e){
-    std::cout<<"Exception: "<<e.what()<<std::endl;
-    std::cout<<"Failed to find path "<<path<<std::endl;
-    return default_value;
-  }
-  return 0;
+    // Parse string
+    std::vector<std::string> fields;
+    std::stringstream ss(path);
+    
+    
+    while( ss.good() ){
+        std::string substr;
+        getline( ss, substr, '.' );
+        fields.push_back( substr );
+    }
+    
+    
+    try{
+        auto val = bson_options[fields[0].c_str()];
+        
+        for(unsigned int i=1; i<fields.size(); i++){
+            val = val[fields[i].c_str()];
+        }
+        return val.get_int32();
+    }
+    catch(const std::exception &e){
+        std::cout<<"\e[31m  Exception:\e[0m "<<e.what()<<std::endl;
+        
+        return default_value;
+    }
+    return 0;
 }
 
 std::string Options::GetString(std::string path, std::string default_value){

@@ -12,26 +12,35 @@ V1724::~V1724(){
 }
 
 int V1724::Init(int link, int crate, int bid, unsigned int address){
-	  
+    cout << "trying to initialize:" << endl <<
+        "\e[33m  link:\e[0m "    << link << endl <<
+        "\e[33m  crate:\e[0m "   << crate << endl <<
+        "\e[33m  bid:\e[0m "     << bid << endl <<
+        "\e[33m  address:\e[0m " << address << endl;
+        
   int a = CAENVME_Init(cvV2718, link, crate, &fBoardHandle);
   if(a != cvSuccess){
-    cout<<"Failed to init board, error code: "<<a<<", handle: "<<fBoardHandle<<
+    cout<<"\e[31mFailed to init board\e[0m, error code: "<<a<<", handle: "<<fBoardHandle<<
       " at link "<<link<<" and bdnum "<<crate<<endl;
     fBoardHandle = -1;
     return -1;
+  } else {
+    cout << "\e[32minit board successful\e[0m" << endl;
   }
+  
   fLog->Entry(MongoLog::Message, "Initialized board %i with handle %i (link/crate)(%i/%i)",
 	      bid, fBoardHandle, link, crate);
   
   // To start we do not know which FW version we're dealing with (for data parsing)
   fFirmwareVersion = fOptions->GetInt("firmware_version", -1);
+  
   if(fFirmwareVersion == -1){
-	cout<<"Firmware version unspecified in options"<<endl;
-	return -1;
+    cout << "\e[31mFirmware version unspecified in options \e[0m" << endl;
+    return -1;
   }
   if((fFirmwareVersion != 0) && (fFirmwareVersion != 1)){
-	cout<<"Firmware version unidentified, accepted versions are {0, 1}"<<endl;
-	return -1;
+    cout << "\e[31mFirmware version unidentified, accepted versions are {0, 1}\e[0m" << endl;
+    return -1;
   }
   fLog->Entry(MongoLog::Message, "Assuming firmware %i (0: XENON, 1: default)",
 	      fFirmwareVersion);
@@ -40,7 +49,7 @@ int V1724::Init(int link, int crate, int bid, unsigned int address){
   fCrate = crate;
   fBID = bid;
   fBaseAddress=address;
-  cout<<"Successfully initialized board at "<<fBoardHandle<<endl;
+  cout << "Successfully initialized board at " << fBoardHandle << endl;
   clock_counter = 0;
   last_time = 0;
   seen_over_15 = false;
