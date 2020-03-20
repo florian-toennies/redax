@@ -33,13 +33,13 @@ int main(int argc, char** argv){
          std::cout << 
             std::endl <<
             "\e[31m" <<
-            "========================" <<
+            "=========================" <<
             std::endl <<
-            "   WARNING: " <<
+            "    WARNING: " <<
             std::endl <<
-            "     in developer mode" <<
+            "      in developer mode" <<
             std::endl <<
-            "========================" <<
+            "=========================" <<
             "\e[0m" <<
             std::endl;
         
@@ -63,13 +63,13 @@ int main(int argc, char** argv){
   } else {
     std::cout <<
             "\e[32m" <<
-            "========================" <<
+            "=========================" <<
             std::endl <<
-            "     Welcome to DAX.     " <<
+            "      Welcome to DAX.     " <<
             std::endl <<
-            "       (for XEBRA)       " <<
+            "        (for XEBRA)       " <<
             std::endl <<
-            "========================" <<
+            "=========================" <<
             "\e[0m" <<
             std::endl <<
             std::endl <<
@@ -336,7 +336,13 @@ int main(int argc, char** argv){
     usleep(1000000);
     
     if(flo_develop){
-        std::cout << std::endl << "\e[32quitting developer loop\e[0m" << std::endl;
+        std::cout << std::endl <<
+                "\e[32m" << std::endl <<
+                "=========================" << std::endl <<
+                "quitting (developer bool) " << std::endl <<
+                "=========================" << std::endl <<
+                "\e[0m" <<
+                std::endl;
         exit(0);
     }
   
